@@ -1,19 +1,28 @@
-import pandas as pd
 import os
+import pandas as pd
+import matplotlib.pyplot as plt
+
 from sklearn.model_selection import train_test_split
+from sklearn.feature_selection import SelectKBest, mutual_info_classif
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
+from sklearn.metrics import (
+    classification_report,
+    confusion_matrix,
+    ConfusionMatrixDisplay,
+    roc_auc_score
+)
 
-from feature_selection_utils import apply_kbest_feature_selection
-
+# ------------------------------------------------------------------
+# KEEP YOUR EXISTING DATA LOADING BLOCK HERE
+# Make sure X and y already exist before this point
+# ------------------------------------------------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 data_path = os.path.join(BASE_DIR, "..", "data", "transaction_dataset.csv")
 
-# Load dataset
 df = pd.read_csv(data_path)
 
-# Drop non-useful columns
+# Drop identifier / non-numeric columns
 df = df.drop(columns=[
     "Unnamed: 0",
     "Index",
@@ -22,47 +31,62 @@ df = df.drop(columns=[
     " ERC20_most_rec_token_type"
 ], errors="ignore")
 
-# Separate features and label
 X = df.drop("FLAG", axis=1)
 y = df["FLAG"]
 
-# Fill missing values
 X = X.fillna(0)
-
-# Split
+# Split first
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42, stratify=y
 )
 
-# Scale first
+# Feature selection
+selector = SelectKBest(score_func=mutual_info_classif, k=45)
+X_train_selected = selector.fit_transform(X_train, y_train)
+X_test_selected = selector.transform(X_test)
+
+selected_feature_names = X.columns[selector.get_support()]
+print("\nEthereum Fraud Detection - Logistic Regression + Feature Selection")
+print(f"\nNumber of selected features: {len(selected_feature_names)}")
+print("Selected features:")
+print(selected_feature_names.tolist())
+
+# Scale AFTER feature selection for LR
 scaler = StandardScaler()
-X_train = scaler.fit_transform(X_train)
-X_test = scaler.transform(X_test)
+X_train_selected = scaler.fit_transform(X_train_selected)
+X_test_selected = scaler.transform(X_test_selected)
 
-# Apply feature selection
-X_train, X_test, selector = apply_kbest_feature_selection(
-    X_train, y_train, X_test, k=50
-)
-
-# Train model
+# Model
 model = LogisticRegression(
     max_iter=1000,
     class_weight="balanced",
     random_state=42
 )
-model.fit(X_train, y_train)
 
-# Predict
-y_pred = model.predict(X_test)
-y_probs = model.predict_proba(X_test)[:, 1]
+model.fit(X_train_selected, y_train)
 
-# Evaluate
-print("\nEthereum Fraud Detection - Logistic Regression + Feature Selection\n")
-print("Classification Report:\n")
+y_pred = model.predict(X_test_selected)
+y_prob = model.predict_proba(X_test_selected)[:, 1]
+
+print("\nClassification Report:\n")
 print(classification_report(y_test, y_pred))
 
+cm = confusion_matrix(y_test, y_pred)
 print("Confusion Matrix:\n")
-print(confusion_matrix(y_test, y_pred))
+print(cm)
 
-print("ROC-AUC:", roc_auc_score(y_test, y_probs))
-print("Selected Features:", X_train.shape[1])
+roc_auc = roc_auc_score(y_test, y_prob)
+print("ROC-AUC:", roc_auc)
+
+os.makedirs("src/Confusion_Matrices", exist_ok=True)
+
+disp = ConfusionMatrixDisplay(confusion_matrix=cm)
+disp.plot(cmap="Blues", values_format="d")
+plt.title("Ethereum Fraud Detection - Logistic Regression + Feature Selection")
+plt.tight_layout()
+plt.savefig(
+    "src/Confusion_Matrices/ethereum_lr_fs_confusion_matrix.png",
+    dpi=300,
+    bbox_inches="tight"
+)
+plt.show()
