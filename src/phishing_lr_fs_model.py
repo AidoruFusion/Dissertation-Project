@@ -1,4 +1,6 @@
 import pandas as pd
+import os
+from scipy.io import arff
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.feature_selection import SelectKBest, f_classif
@@ -6,11 +8,17 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
 
 # Load dataset
-df = pd.read_csv("data/Training Dataset.arff")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+data_path = os.path.join(BASE_DIR, "..", "data", "Training Dataset.arff")
 
-# Fix ARFF-style byte strings if needed
+# Load ARFF
+data, meta = arff.loadarff(data_path)
+df = pd.DataFrame(data)
+
+# Decode byte columns if present
 for col in df.columns:
-    df[col] = df[col].astype(str).str.replace("b'", "", regex=False).str.replace("'", "", regex=False)
+    if df[col].dtype == object:
+        df[col] = df[col].apply(lambda x: x.decode("utf-8") if isinstance(x, bytes) else x)
 
 # Convert all columns to numeric
 df = df.apply(pd.to_numeric, errors="coerce")
