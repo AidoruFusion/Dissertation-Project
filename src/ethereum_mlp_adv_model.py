@@ -1,13 +1,4 @@
-"""
-ethereum_mlp_adv_model.py
--------------------------
-Adversarial training of the lightweight MLP on the Ethereum fraud
-detection dataset using PGD (Madry et al. 2018), with figures saved
-to ../figures/ for the dissertation.
 
-Run:
-    python ethereum_mlp_adv_model.py
-"""
 
 import os
 import numpy as np
@@ -32,7 +23,7 @@ TARGET_COL   = "FLAG"
 RANDOM_STATE = 42
 TEST_SIZE    = 0.20
 
-ATTACK_METHOD = "pgd"
+ATTACK_METHOD = "transfer"
 EPS           = 0.10
 MAX_ITER      = 40
 AUG_FRACTION  = 0.50
