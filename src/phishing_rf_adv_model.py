@@ -1,4 +1,12 @@
+"""
+phishing_rf_adv_model.py
+------------------------
+Adversarial training of the Random Forest classifier on the UCI Phishing
+Websites dataset. Mirrors phishing_rf_model.py for the baseline.
 
+Run:
+    python phishing_rf_adv_model.py
+"""
 
 import os
 import numpy as np
@@ -11,7 +19,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 from adversarial_utils import evaluate, generate_adversarial_examples, summarise
-from adversarial_plots import save_confusion_matrix, save_roc_comparison, get_scores
+from adversarial_plots import save_confusion_matrix, save_roc_comparison, get_scores, safe_auc
 
 
 # ---------------------------------------------------------------------------
@@ -133,24 +141,32 @@ def main():
         f"{PRETTY_MDL}: Baseline under attack ({PRETTY_DS})",
         os.path.join(FIG_DIR, f"cm_{DATASET_NAME}_{MODEL_NAME}_baseline_attack.png"),
         class_names=CLASS_NAMES,
+        roc_auc_value=safe_auc(y_test, get_scores(baseline, X_test_adv_baseline)),
+        model_label=PRETTY_MDL,
     )
     save_confusion_matrix(
         y_test, hardened.predict(X_test_adv_hardened),
         f"{PRETTY_MDL}: Hardened under attack ({PRETTY_DS})",
         os.path.join(FIG_DIR, f"cm_{DATASET_NAME}_{MODEL_NAME}_hardened_attack.png"),
         class_names=CLASS_NAMES,
+        roc_auc_value=safe_auc(y_test, get_scores(hardened, X_test_adv_hardened)),
+        model_label=PRETTY_MDL,
     )
     save_confusion_matrix(
         y_test, baseline.predict(X_test),
         f"{PRETTY_MDL}: Baseline clean ({PRETTY_DS})",
         os.path.join(FIG_DIR, f"cm_{DATASET_NAME}_{MODEL_NAME}_baseline_clean.png"),
         class_names=CLASS_NAMES,
+        roc_auc_value=safe_auc(y_test, get_scores(baseline, X_test)),
+        model_label=PRETTY_MDL,
     )
     save_confusion_matrix(
         y_test, hardened.predict(X_test),
         f"{PRETTY_MDL}: Hardened clean ({PRETTY_DS})",
         os.path.join(FIG_DIR, f"cm_{DATASET_NAME}_{MODEL_NAME}_hardened_clean.png"),
         class_names=CLASS_NAMES,
+        roc_auc_value=safe_auc(y_test, get_scores(hardened, X_test)),
+        model_label=PRETTY_MDL,
     )
 
     save_roc_comparison(
