@@ -71,13 +71,14 @@ def generate_adversarial_examples(
     """
     method = method.lower()
     n_features = X.shape[1]
-    clf = wrap_classifier(model, n_features)
 
     if method == "fgsm":
+        clf = wrap_classifier(model, n_features)
         attack = FastGradientMethod(estimator=clf, eps=eps, norm=np.inf)
         return attack.generate(x=X.astype(np.float32))
 
     if method == "pgd":
+        clf = wrap_classifier(model, n_features)
         attack = ProjectedGradientDescent(
             estimator=clf,
             eps=eps,
@@ -89,6 +90,7 @@ def generate_adversarial_examples(
         return attack.generate(x=X.astype(np.float32))
 
     if method == "hopskipjump":
+        clf = wrap_classifier(model, n_features)
         attack = HopSkipJump(
             classifier=clf,
             targeted=False,
@@ -101,6 +103,7 @@ def generate_adversarial_examples(
         return attack.generate(x=X.astype(np.float32))
 
     if method == "zoo":
+        clf = wrap_classifier(model, n_features)
         attack = ZooAttack(
             classifier=clf,
             confidence=0.0,
